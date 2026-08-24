@@ -241,6 +241,10 @@ loads the rules before it touches the cluster.
 └── README.md
 ```
 
+The `Dockerfile` here is a reconstruction from this README's stated
+configuration, since the original was not included in the export (see the
+comment block at the top of the file).
+
 Everything under `tools/` is imported as a package, so one style works on the
 driver and on every Ray worker alike, because Ray puts the `runtime_env` working
 directory (this repo root) on `sys.path`:
@@ -378,6 +382,14 @@ Gemma Terms of Use; see `GEMMA_NOTICE.txt` at that prefix.)
 | lerobot | 0.4.3 (`--no-deps`) |
 | transformers | `huggingface/transformers@dcddb97` (patched fork, pinned commit) |
 
+> **Torch pin mismatch.** The two prerequisite notebooks pip-install
+> `torch==2.10.0`, while the course image ships the PyTorch 2.7.0 pinned above.
+> The notebook pins are left as they are. Running that pip cell inside the
+> course image replaces torch in place and, like the `numpy >= 2` ABI issue
+> described below, may break Isaac Sim's compiled ABI. Run the prerequisite
+> notebooks in a separate environment, or skip their install cell when working
+> inside the course image.
+
 **Why the patched transformers fork?** PI0.5's checkpoint stores Gemma
 layernorm parameters under a different key layout than mainline `transformers
 >= 4.57`, and `PI05Pytorch.__init__` aborts unless `transformers.models.siglip.check`
@@ -407,6 +419,24 @@ Two things worth knowing before you build:
 
 (No Weights & Biases in the tutorial; metrics are reported through Ray Train. `wandb` is
 installed only because lerobot expects it to be importable.)
+
+---
+
+## Provenance
+
+This is Ray Summit 2026 Anyscale course material, republished with permission
+for personal study. The original content is copyright 2026 Anyscale.
+
+### Running outside Anyscale
+
+* The `/mnt/cluster_storage` and `/mnt/local_storage` paths used by the
+  notebooks and `tools/` modules are Anyscale-specific. On any other platform
+  they need repointing to storage you provide.
+* All data, weights, and the tokenizer come from the public bucket
+  `s3://anyscale-public-materials-use2/ray_summit_robotics_2026/`, read
+  unsigned, so no credentials are needed for the data itself.
+* The agent-led SmolVLA track needs an Anyscale account, since its setup runs
+  `anyscale login` and `anyscale skills install`.
 
 ---
 
