@@ -19,3 +19,6 @@ mlruns/
 # Ray / Anyscale artifacts
 /tmp/
 ray_results/
+
+# Virtual environments
+.venv/
