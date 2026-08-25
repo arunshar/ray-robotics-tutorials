@@ -273,6 +273,15 @@ directly rather than through the package.
 
 ---
 
+## Committed notebook state
+
+Notebooks 00, 01, 02 and 05 carry a clean committed run. Notebook 03 stops at the policy
+server deployment with a `RuntimeError` from Ray Serve, and notebook 04 stops at the world
+model training step with an `ActorDiedError` caused by a missing `libcusparseLt.so.0`. In
+both files the cells after the failure are unexecuted. The teaching material and the code
+are complete, so the committed outputs record where a particular cluster run stopped rather
+than a defect in the notebooks, but do not read those two files as verified end to end.
+
 ## Prerequisites
 
 ### Cluster
@@ -405,7 +414,10 @@ worker nodes have no C compiler, so dynamo falls back to eager cleanly.
 ### Cluster image (Dockerfile)
 
 The image is defined by [`Dockerfile`](./Dockerfile) in this directory, which is the single
-source of truth; build that file as-is.
+source of truth for the environment. Read the reconstruction note above before you build it.
+That file was rebuilt from the pins recorded in this README after the original was lost in
+the export, and it has never been built or run, so treat a first build as something to debug
+rather than a known-good step.
 
 Two things worth knowing before you build:
 
