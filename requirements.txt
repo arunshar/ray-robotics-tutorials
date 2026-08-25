@@ -130,7 +130,7 @@ ipython      # tools/viz.py and notebook 03, for inline display
 #
 # Isaac Lab 0.54.4 is not a pip package here. The Dockerfile clones
 # isaac-sim/IsaacLab at commit b0542fe and builds from source with
-# `./isaaclab.sh --install none` (Dockerfile lines 81-84). The README's table
+# `./isaaclab.sh --install none` (Dockerfile lines 80-83). The README's table
 # records the version as 0.54.4 at main@b0542fe. Reproduce it with the
 # Dockerfile, not with pip.
 #
