@@ -1,0 +1,160 @@
+# ============================================================================
+# RECORDED INTENT, NOT A VERIFIED WORKING SET.
+#
+# This repository shipped with no dependency manifest of any kind. Every pin
+# below was derived from two places, both of them secondhand:
+#
+#   1. ./Dockerfile, which is itself a RECONSTRUCTION. The original course
+#      Dockerfile was lost in the export and was rebuilt from the README's
+#      prose. It has never been built or run. See the comment block at the top
+#      of that file.
+#   2. The "Tested configuration" table in ./README.md, which is where the
+#      Dockerfile's own pins came from.
+#
+# So this file is a third-hand record: prose became a Dockerfile, and the
+# Dockerfile became this list. No pin here was read from a build log, a
+# lockfile, a `pip freeze`, or a running container. Nothing here has been
+# installed or tested. Treat a first install as something to debug.
+#
+# `pip install -r requirements.txt` WILL NOT reproduce the image. The
+# Dockerfile installs in stages, from three different indexes, with --no-deps
+# on one package. A requirements file cannot express any of that. Read the
+# "Install order" notes below and follow the Dockerfile if you need the real
+# environment.
+# ============================================================================
+
+
+# ---------------------------------------------------------------------------
+# Supplied by the base image, NOT by this file.
+#
+# Dockerfile line 18: FROM anyscale/ray:2.53.0-py311-cu128
+#
+#   ray     2.53.0   (README's table also lists 2.55.0 as tested)
+#   python  3.11
+#   cuda    12.8
+#
+# Ray is deliberately absent from the requirements below. Pip-installing a Ray
+# version into an image that already carries one is how you end up with a
+# cluster whose driver and workers disagree. If you are building the image,
+# take Ray from the base tag. If you are installing into some other
+# environment, pick the Ray version first and pin it yourself.
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Install order and indexes. The Dockerfile does this in four separate steps
+# and the order is load-bearing.
+#
+#   1. numpy first, pinned below 2. Isaac Sim's compiled ABI breaks on numpy 2
+#      (README, "Why lerobot --no-deps?"). Installing it first means later
+#      packages resolve against the pinned numpy instead of pulling numpy 2.
+#
+#   2. torch, from the CUDA 12.8 wheel index:
+#        pip install "torch==2.7.0" \
+#          --index-url https://download.pytorch.org/whl/cu128
+#      That flag is NOT set in this file. As a requirements-file directive
+#      --index-url applies to every line in the file, not just torch, which
+#      would send the rest of the resolve to the PyTorch index too. Install
+#      torch on its own line with the flag, exactly as Dockerfile lines 67-68
+#      do.
+#
+#   3. isaacsim, from NVIDIA's index:
+#        pip install "isaacsim[all,extscache]==5.1.0" \
+#          --extra-index-url https://pypi.nvidia.com
+#      Same reasoning. Kept out of this file, run as its own step. See
+#      Dockerfile lines 73-74.
+#
+#   4. lerobot, with --no-deps. Its rerun-sdk dependency requires numpy >= 2,
+#      which breaks Isaac Sim (README, "Why lerobot --no-deps?"). --no-deps is
+#      a global pip flag with no per-requirement form, so it cannot be attached
+#      to a single line here. See Dockerfile line 100.
+# ---------------------------------------------------------------------------
+
+
+# --- Pinned, and safe to install together -----------------------------------
+
+# numpy < 2 for Isaac Sim's compiled ABI. Source: Dockerfile line 66, and the
+# README's "Why lerobot --no-deps?" note.
+numpy>=1.26,<2
+
+# Patched transformers fork, pinned to a commit. PI0.5's checkpoint stores
+# Gemma layernorm parameters under a different key layout than mainline
+# transformers >= 4.57, and PI05Pytorch.__init__ aborts unless
+# transformers.models.siglip.check exists, a symbol only in this fork.
+# Source: Dockerfile line 92, README "Tested configuration" table.
+transformers @ git+https://github.com/huggingface/transformers@dcddb97
+
+
+# --- Pinned, but each needs its own pip invocation ---------------------------
+# Uncomment only if you have read the "Install order" notes above and accept
+# that a plain `-r requirements.txt` run will resolve them wrongly.
+
+# torch==2.7.0                       # --index-url .../whl/cu128 (Dockerfile 67-68)
+# isaacsim[all,extscache]==5.1.0     # --extra-index-url pypi.nvidia.com (Dockerfile 73-74)
+# lerobot==0.4.3                     # --no-deps (Dockerfile 100)
+
+
+# --- Imported by the code, with no version recorded anywhere ----------------
+# The Dockerfile installs these four unpinned on line 101. No version for any
+# of them appears in the Dockerfile, the README, or any notebook output, so
+# there is nothing here to pin them to. Left unpinned rather than guessed.
+
+wandb        # installed only because lerobot expects it to be importable.
+             # The course reports metrics through Ray Train, not W&B.
+av           # video decode in tools/lerobot_datasource.py
+fsspec       # S3 reads in tools/lerobot_datasource.py
+pillow       # tools/sim_worker.py, tools/franka_env.py, notebooks 04 and 05
+
+
+# --- Imported by the code and installed by NOTHING in the Dockerfile --------
+# Every name below is imported by a notebook or by a module under tools/, and
+# no line in the reconstructed Dockerfile installs it. Some arrive as
+# transitive dependencies of the base image, of isaacsim, or of Isaac Lab.
+# Which ones, and at what versions, is not recorded. This block is the honest
+# gap list, not a tested set.
+
+fastapi      # tools/policy_server.py, the @serve.deployment ASGI app
+requests     # tools/sim_worker.py, HTTP calls to the policy server
+pyarrow      # tools/lerobot_datasource.py, notebook 04
+gymnasium    # tools/franka_env.py, normally arrives with Isaac Lab
+matplotlib   # notebooks 01, 04, and both prerequisites
+pandas       # prerequisite_01_ray_train.ipynb
+s3fs         # notebook 04
+torchvision  # notebook 05, and both prerequisites
+datasets     # notebook 05
+ipython      # tools/viz.py and notebook 03, for inline display
+
+
+# ---------------------------------------------------------------------------
+# NOT covered by this file.
+#
+# Isaac Lab 0.54.4 is not a pip package here. The Dockerfile clones
+# isaac-sim/IsaacLab at commit b0542fe and builds from source with
+# `./isaaclab.sh --install none` (Dockerfile lines 81-84). The README's table
+# records the version as 0.54.4 at main@b0542fe. Reproduce it with the
+# Dockerfile, not with pip.
+#
+# pinocchio is imported by tools/franka_env.py and comes from the Isaac Lab
+# install, not from pip.
+#
+# The two prerequisite notebooks open with:
+#   !pip install -q "torch==2.10.0" "torchvision==0.25.0"
+# Those pins CONTRADICT the torch 2.7.0 above and are deliberately left out of
+# this file. Running that cell inside the course image replaces torch in place.
+# In the committed run of prerequisite_00_ray_data.ipynb that install failed
+# partway through and the next cell's `import torch` raised
+# `ImportError: libcusparseLt.so.0`. Run the prerequisites in a separate
+# environment. See "Committed notebook state" in the README.
+#
+# Runtime environment variables the image sets (Dockerfile lines 108-109),
+# which a pip install cannot carry:
+#   TORCHDYNAMO_DISABLE=1   PI0.5 calls torch.compile internally and the worker
+#                           nodes have no C compiler, so dynamo falls back to
+#                           eager cleanly.
+#   HF_HUB_OFFLINE=1        Weights and tokenizer come from the public S3
+#                           mirror, so no Hugging Face token is used.
+#
+# NV_DRIVER_VERSION is a required build arg with no default. It must match the
+# host driver reported by:
+#   nvidia-smi --query-gpu=driver_version --format=csv,noheader
+# ---------------------------------------------------------------------------

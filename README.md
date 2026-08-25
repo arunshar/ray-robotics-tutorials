@@ -232,18 +232,25 @@ loads the rules before it touches the cluster.
 ├── 00_overview.ipynb … 05_distillation_for_edge.ipynb   the course, read in order
 ├── prerequisite_00_ray_data.ipynb                       optional Ray warm-ups
 ├── prerequisite_01_ray_train.ipynb
-├── tools/          shared Python imported by the notebooks
+├── tools/             shared Python imported by the notebooks
 │   └── AGENT_RULES.md   ground rules the agent-led track loads first
-├── prompts/        the agent-led track's brief
-├── assets/         GIFs and diagrams the notebooks display
-├── Dockerfile      the cluster image (single source of truth)
-├── SETUP.txt       the agent-install steps as plain text, for sharing
+├── prompts/           the agent-led track's brief
+├── assets/            GIFs and diagrams the notebooks display
+├── Dockerfile         the cluster image (single source of truth)
+├── requirements.txt   the Dockerfile's pins as a manifest, never installed
+├── SETUP.txt          the agent-install steps as plain text, for sharing
 └── README.md
 ```
 
 The `Dockerfile` here is a reconstruction from this README's stated
 configuration, since the original was not included in the export (see the
-comment block at the top of the file).
+comment block at the top of the file). [`requirements.txt`](./requirements.txt)
+restates that Dockerfile's pins as a manifest, so it inherits the same caveat
+one step further removed. It records intent and has never been installed. It
+also cannot reproduce the image on its own, because the Dockerfile installs
+from three indexes in a fixed order and applies `--no-deps` to one package.
+The file's header says so at length. Build the Dockerfile if you need the real
+environment.
 
 Everything under `tools/` is imported as a package, so one style works on the
 driver and on every Ray worker alike, because Ray puts the `runtime_env` working
