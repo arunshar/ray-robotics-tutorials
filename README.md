@@ -275,12 +275,73 @@ directly rather than through the package.
 
 ## Committed notebook state
 
-Notebooks 00, 01, 02 and 05 carry a clean committed run. Notebook 03 stops at the policy
-server deployment with a `RuntimeError` from Ray Serve, and notebook 04 stops at the world
-model training step with an `ActorDiedError` caused by a missing `libcusparseLt.so.0`. In
-both files the cells after the failure are unexecuted. The teaching material and the code
-are complete, so the committed outputs record where a particular cluster run stopped rather
-than a defect in the notebooks, but do not read those two files as verified end to end.
+Every notebook here ships with the outputs of one recorded cluster session, and that session
+did not finish the course. **Three notebooks carry a Python error output, and two more stop
+early without one.** The table below was produced by parsing all eight `.ipynb` files for
+cells with a non-null `execution_count` and for outputs with `output_type == "error"`, so the
+counts are read from the committed files rather than estimated.
+
+| Notebook | Code cells | Executed | Stops at | Recorded error |
+|---|---|---|---|---|
+| `00_overview.ipynb` | 1 | 1 | runs to the end | none |
+| `01_robotics_data_pipelines.ipynb` | 6 | 6 | runs to the end | none, but see the segfault note below |
+| `02_vla_finetuning.ipynb` | 8 | 7 | cell 7, the round-1 fine-tune | none, and the output still ends mid-run |
+| `03_serving_and_sim_eval.ipynb` | 13 | 6 | cell 6, the policy-server deploy | `RuntimeError` from Ray Serve |
+| `04_world_model_pretraining.ipynb` | 13 | 9 | cell 9, the V-JEPA training call | `ActorDiedError` |
+| `05_distillation_for_edge.ipynb` | 9 | 9 | runs to the end | none |
+| `prerequisite_00_ray_data.ipynb` | 22 | 2 | cell 2, the first `import torch` | `ImportError` |
+| `prerequisite_01_ray_train.ipynb` | 21 | 9 | cell 9, the single-GPU Ray task | none |
+
+Cell numbers count code cells only, and they match the printed `execution_count` because every
+notebook was executed straight through from its first cell.
+
+**The two `libcusparseLt` failures.** `prerequisite_00_ray_data.ipynb` and
+`04_world_model_pretraining.ipynb` both die on the same missing shared library,
+`libcusparseLt.so.0: cannot open shared object file`. In the prerequisite it surfaces
+immediately, as an `ImportError` raised by `import torch` in cell 2, and the cell above it
+had already printed `ERROR: Could not install packages due to an OSError: [Errno 2] No such
+file or directory: 'lib'` from its `pip install "torch==2.10.0" "torchvision==0.25.0"` line.
+That install left a torch that cannot be imported. In notebook 04 the same missing library
+kills the Ray Train controller actor before training starts, which the notebook surfaces as
+`ActorDiedError`. Whether one caused the other is not established by the committed outputs.
+See [Torch pin mismatch](#tested-configuration) for why running that pip cell inside the
+course image is a known hazard.
+
+**Notebook 03 is downstream of notebook 02.** The `RuntimeError` in cell 6 is only Ray Serve
+reporting that its deployment failed. The replica's own traceback, further down the same
+cell's log, gives the real reason:
+
+```
+FileNotFoundError: Checkpoint not found at
+/mnt/cluster_storage/vla_closed_loop_demo/checkpoint_round1/state.pkl.
+Run the fine-tuning notebook (02) first.
+```
+
+Notebook 02 never wrote that checkpoint, so notebook 03 had nothing to serve.
+
+**Notebook 02 carries no error, and it did not finish either.** Cell 7 starts the round-1
+fine-tune, and its captured output stops after the workers print the notice that PI0.5 is a
+port of OpenPI. The `Checkpoint :` and `Final metrics:` lines that the cell's own source
+prints on completion are absent, and cell 8 is unexecuted. Earlier in the same log the Ray
+Train controller records `WorkerGroupStartupTimeoutError` twice, retrying before it starts a
+worker group of four. An earlier version of this section called notebook 02 a clean run. It
+is not one.
+
+**Notebook 01 completed through a worker crash.** Cell 4 printed its state and action vectors,
+so it finished, but its log contains a Ray worker `SIGSEGV` and a
+`SYSTEM_ERROR ... connection error code 2` line. Ray retried the task. The output is usable
+and the crash is in it.
+
+**The timestamps overlap.** Every timestamp in every committed output falls between
+`2026-08-24 20:30:53` and `2026-08-24 20:35:33`, and the windows for notebooks 02, 03, 04 and
+05 run concurrently rather than one after another. These outputs record several notebooks
+contending for one cluster in a single five-minute session, not a sequential pass through the
+course.
+
+None of this points at a defect in the teaching material. The prose, the code under `tools/`,
+and the `assets/` GIFs are complete and are the reason to read the notebooks. What is not
+available is a committed end-to-end run: **only notebooks 00, 01 and 05 executed every cell
+they contain.** Treat the rest as source to read, not as evidence that the pipeline ran.
 
 ## Prerequisites
 
