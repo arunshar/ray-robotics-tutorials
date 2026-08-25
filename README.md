@@ -236,7 +236,7 @@ loads the rules before it touches the cluster.
 │   └── AGENT_RULES.md   ground rules the agent-led track loads first
 ├── prompts/           the agent-led track's brief
 ├── assets/            GIFs and diagrams the notebooks display
-├── Dockerfile         the cluster image (single source of truth)
+├── Dockerfile         the cluster image (primary environment reference)
 ├── requirements.txt   the Dockerfile's pins as a manifest, never installed
 ├── SETUP.txt          the agent-install steps as plain text, for sharing
 └── README.md
@@ -451,7 +451,7 @@ Gemma Terms of Use; see `GEMMA_NOTICE.txt` at that prefix.)
 
 | Component | Version |
 |-----------|---------|
-| Ray | 2.53.0 and 2.55.0 |
+| Ray | 2.53.0 (the only version evidenced: `Dockerfile` line 18 and two notebook outputs) |
 | Python | 3.11 |
 | PyTorch | 2.7.0 + CUDA 12.8 |
 | Isaac Sim | 5.1.0 |
