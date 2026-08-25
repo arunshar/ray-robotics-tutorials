@@ -532,3 +532,44 @@ notebooks* is at smoke scale (small step counts); the full-epoch clip above is a
 separate run on a larger cluster, shown to make the point that the ceiling is
 training budget rather than the code. The lesson is that the *same code* scales to
 production by changing config, not logic.
+
+### What this repository will not do for you
+
+Four limits, stated plainly, so nobody clones this expecting a working stack.
+
+**It will not run on a non-NVIDIA machine.** Not slowly, not degraded, not at
+all. The dependency chain is NVIDIA end to end. `torch==2.7.0` comes from the
+CUDA 12.8 wheel index, `isaacsim[all,extscache]==5.1.0` comes from
+`pypi.nvidia.com`, and the Dockerfile downloads
+`NVIDIA-Linux-x86_64-${NV_DRIVER_VERSION}.run` and writes a Vulkan ICD pointing
+at `libGLX_nvidia.so.0` so Isaac Sim's RTX renderer can find the driver.
+`NV_DRIVER_VERSION` is a required build arg with no default, and it has to match
+the driver on the host. An Apple Silicon Mac, an AMD GPU, or any CPU-only box
+cannot build this image, let alone run the notebooks. The prose, the code under
+`tools/`, and the GIFs in `assets/` are readable anywhere. Nothing else is.
+
+**The `Dockerfile` has never been built.** The original was lost in the export.
+The one here was reconstructed from this README's own "Tested configuration"
+table, so every pin in it traces back to prose rather than to a build log. There
+is no evidence it produces a working image, and the NVIDIA graphics-userspace
+block in particular is a best-effort guess at what the original did.
+[`requirements.txt`](./requirements.txt) is derived from that Dockerfile and is
+one step further removed still. Treat a first build as debugging work.
+
+**Three notebooks carry a failed run, and two more stop early.** Only
+`00_overview`, `01_robotics_data_pipelines` and `05_distillation_for_edge`
+executed every cell they contain. Notebooks 02, 03, 04 and both prerequisites
+stop partway, three of them on a recorded Python error. There is no committed
+end-to-end run of this course.
+[Committed notebook state](#committed-notebook-state) gives the per-notebook
+counts and the cause behind each stop.
+
+**The data is not in this repository, and it is not yours.** Datasets, the PI0.5
+weights, and the PaliGemma tokenizer are all streamed from the public bucket
+`s3://anyscale-public-materials-use2/ray_summit_robotics_2026/`, read unsigned.
+No credentials are needed, and nothing is vendored here. That also means the
+data is only as available as Anyscale chooses to keep it. If that prefix goes
+away, the notebooks lose their inputs and nothing in this repository can replace
+them. `google/paligemma-3b-pt-224` is redistributed there under the Gemma Terms
+of Use, and the course material itself is copyright 2026 Anyscale, republished
+with permission for personal study. See [Provenance](#provenance).
